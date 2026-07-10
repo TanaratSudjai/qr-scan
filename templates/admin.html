@@ -57,9 +57,16 @@
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'same-origin',
             body: JSON.stringify({ is_open: newState })
         })
-        .then(response => response.json())
+        .then(async response => {
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || 'API Error');
+            }
+            return response.json();
+        })
         .then(data => {
             isOpen = data.is_open;
             const btn = document.getElementById('toggleBtn');

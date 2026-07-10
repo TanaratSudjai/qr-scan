@@ -101,12 +101,14 @@
     function performCheckin() {
         fetch('/api/checkin', {
             method: 'POST',
+            credentials: 'same-origin'
         })
-            .then(response => {
+            .then(async response => {
                 if (response.ok) {
                     return response.json();
                 }
-                throw new Error('Check-in failed or closed');
+                const errText = await response.text();
+                throw new Error(errText || 'Check-in failed');
             })
             .then(data => {
                 hasCheckedIn = true;
