@@ -1,0 +1,136 @@
+{{template "header" .}}
+<div class="bento-container">
+    <div class="bento-box">
+        <div class="d-flex justify-between"
+            style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+            <div>
+                <h2>สวัสดีคุณ {{.Member.FullName}}</h2>
+                <p>ยินดีต้อนรับสู่ระบบเช็คชื่อเข้าใช้งาน</p>
+            </div>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none;">
+                <i class="ph ph-sign-out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="bento-box" style="background-color: var(--bg-color); text-align: center;">
+                <i class="ph ph-check-circle icon"
+                    style="font-size: 32px; color: var(--primary); margin-bottom: 10px;"></i>
+                <h3 style="margin-bottom: 5px;">จำนวนครั้งที่เช็คชื่อ</h3>
+                <h1 id="checkinCount" style="font-size: 48px; color: var(--primary); margin: 0;">
+                    {{.Member.CountCheckin}}</h1>
+            </div>
+
+            <div class="bento-box"
+                style="background-color: var(--bg-color); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <div id="waitingState" style="display: {{if .IsOpen}}none{{else}}block{{end}};">
+                    <i class="ph ph-hourglass-high icon"
+                        style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px;"></i>
+                    <h3 style="margin-bottom: 5px;">กำลังรอ...</h3>
+                    <p style="margin: 0;">กรุณารอผู้ดูแลระบบเปิดให้เช็คชื่อ</p>
+                </div>
+
+                <div id="activeState" style="display: {{if and .IsOpen (not .HasCheckedIn)}}block{{else}}none{{end}}; width: 100%;">
+                    <i class="ph ph-hand-tap icon"
+                        style="font-size: 32px; color: var(--primary); margin-bottom: 10px;"></i>
+                    <h3 style="margin-bottom: 15px;">เปิดให้เช็คชื่อแล้ว!</h3>
+                    <button id="btnCheckin" onclick="performCheckin()">
+                        <i class="ph ph-check icon"></i> เช็คชื่อทันที
+                    </button>
+                </div>
+                
+                <div id="checkedInState" style="display: {{if and .IsOpen .HasCheckedIn}}block{{else}}none{{end}}; width: 100%;">
+                    <i class="ph ph-check-circle icon" style="font-size: 32px; color: #38a169; margin-bottom: 10px;"></i>
+                    <h3 style="margin-bottom: 5px; color: #38a169;">เช็คชื่อแล้ว</h3>
+                    <p style="margin: 0; font-size: 14px;">คุณได้เช็คชื่อสำหรับรอบนี้เรียบร้อยแล้ว</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = protocol + "//" + window.location.host + "/ws";
+
+    let socket;
+
+    let currentSessionId = {{.SessionID}};
+    let hasCheckedIn = {{.HasCheckedIn}};
+
+    function connectWS() {
+        socket = new WebSocket(wsUrl);
+
+        socket.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+                const waitingState = document.getElementById('waitingState');
+                const activeState = document.getElementById('activeState');
+                const checkedInState = document.getElementById('checkedInState');
+
+                if (data.status === 'open') {
+                    if (data.session_id !== currentSessionId) {
+                        currentSessionId = data.session_id;
+                        hasCheckedIn = false;
+                    }
+                    waitingState.style.display = 'none';
+                    if (hasCheckedIn) {
+                        activeState.style.display = 'none';
+                        checkedInState.style.display = 'block';
+                    } else {
+                        activeState.style.display = 'block';
+                        checkedInState.style.display = 'none';
+                    }
+                } else {
+                    waitingState.style.display = 'block';
+                    activeState.style.display = 'none';
+                    checkedInState.style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Error parsing websocket message", e);
+            }
+        };
+
+        socket.onclose = function () {
+            setTimeout(connectWS, 2000); // Reconnect
+        };
+    }
+
+    connectWS();
+
+    function performCheckin() {
+        fetch('/api/checkin', {
+            method: 'POST',
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Check-in failed or closed');
+            })
+            .then(data => {
+                hasCheckedIn = true;
+                document.getElementById('activeState').style.display = 'none';
+                document.getElementById('checkedInState').style.display = 'block';
+                
+                const countEl = document.getElementById('checkinCount');
+                countEl.innerText = parseInt(countEl.innerText) + 1;
+
+                Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: 'คุณเช็คชื่อสำเร็จแล้ว',
+                    icon: 'success',
+                    confirmButtonColor: '#0066ff'
+                });
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: error.message === 'Check-in failed or closed' ? 'การเช็คชื่อล้มเหลว หรือระบบปิดรับการเช็คชื่อแล้ว' : error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#e53e3e'
+                });
+            });
+    }
+</script>
+{{template "footer" .}}

@@ -1,0 +1,92 @@
+{{template "header" .}}
+<div class="bento-container">
+    <div class="bento-box">
+        <div class="d-flex justify-between" style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+            <div>
+                <h2>แดชบอร์ดผู้ดูแลระบบ</h2>
+                <p>จัดการรอบการเช็คชื่อและดูสถิติ</p>
+            </div>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none;">
+                <i class="ph ph-sign-out icon"></i> ออกจากระบบ
+            </a>
+        </div>
+        
+        <div class="bento-box" style="background-color: var(--bg-color); text-align: center; margin-bottom: 20px;">
+            <i class="ph ph-broadcast icon" style="font-size: 32px; color: var(--primary); margin-bottom: 10px;"></i>
+            <h3>ควบคุมการเช็คชื่อ</h3>
+            <p style="margin-bottom: 20px;">กดปุ่มด้านล่างเพื่อเปิดหรือปิดรับการเช็คชื่อสำหรับทุกคน</p>
+            
+            <button id="toggleBtn" onclick="toggleCheckin()" class="{{if not .IsOpen}}btn-outline{{end}}" style="max-width: 200px; margin: 0 auto;">
+                <i class="ph {{if .IsOpen}}ph-stop-circle{{else}}ph-play-circle{{end}} icon"></i> 
+                <span id="toggleText">{{if .IsOpen}}ปิดรับเช็คชื่อ{{else}}เปิดรับเช็คชื่อ{{end}}</span>
+            </button>
+        </div>
+
+        <h3>สถิติผู้ใช้งาน</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 16px;">
+            {{range .Members}}
+            <div style="background-color: var(--bg-color); border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background-color: rgba(0, 102, 255, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                        <i class="ph ph-user" style="font-size: 24px;"></i>
+                    </div>
+                    <div style="overflow: hidden;">
+                        <div style="font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px;">{{.FullName}}</div>
+                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+                            <i class="ph ph-phone" style="vertical-align: middle;"></i> {{.PhoneNumber}}
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right; background-color: rgba(0, 102, 255, 0.05); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(0, 102, 255, 0.1);">
+                    <div style="font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1;">{{.CountCheckin}}</div>
+                    <div style="font-size: 11px; color: var(--primary); font-weight: 500; margin-top: 4px;">ครั้ง</div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<script>
+    let isOpen = {{.IsOpen}};
+
+    function toggleCheckin() {
+        const newState = !isOpen;
+        fetch('/api/admin/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_open: newState })
+        })
+        .then(response => response.json())
+        .then(data => {
+            isOpen = data.is_open;
+            const btn = document.getElementById('toggleBtn');
+            const text = document.getElementById('toggleText');
+            const icon = btn.querySelector('.icon');
+            
+            if (isOpen) {
+                btn.classList.remove('btn-outline');
+                text.innerText = 'ปิดรับเช็คชื่อ';
+                icon.className = 'ph ph-stop-circle icon';
+            } else {
+                btn.classList.add('btn-outline');
+                text.innerText = 'เปิดรับเช็คชื่อ';
+                icon.className = 'ph ph-play-circle icon';
+            }
+            
+            Swal.fire({
+                title: 'สำเร็จ!',
+                text: 'ทำการ' + (isOpen ? 'เปิด' : 'ปิด') + 'รอบเช็คชื่อเรียบร้อยแล้ว',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        })
+        .catch(error => {
+            console.error('Error toggling checkin state', error);
+        });
+    }
+</script>
+{{template "footer" .}}

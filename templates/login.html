@@ -1,0 +1,21 @@
+{{template "header" .}}
+<div class="bento-container" style="max-width: 400px;">
+    <div class="bento-box">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <i class="ph ph-sign-in icon" style="font-size: 48px; color: var(--primary);"></i>
+            <h2>ยินดีต้อนรับกลับเข้าสู่ระบบ</h2>
+            <p>กรุณากรอกเบอร์โทรศัพท์เพื่อดำเนินการต่อ</p>
+        </div>
+        {{if .Error}}
+        <div class="error"><i class="ph ph-warning-circle"></i> {{.Error}}</div>
+        {{end}}
+        <form action="/login" method="POST">
+            <input type="tel" name="phoneNumber" placeholder="เบอร์โทรศัพท์ (เช่น 0812345678)" required autocomplete="off">
+            <button type="submit">
+                <span>เข้าสู่ระบบ</span>
+                <i class="ph ph-arrow-right icon"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{{template "footer" .}}
