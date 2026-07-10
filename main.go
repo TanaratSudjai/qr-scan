@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"qr-scan/internal/database"
@@ -45,6 +46,13 @@ func main() {
 	r := gin.Default()
 
 	store := cookie.NewStore([]byte("secret_session_key"))
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 30,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
 	r.Use(sessions.Sessions("mysession", store))
 
 	r.LoadHTMLGlob("templates/*")

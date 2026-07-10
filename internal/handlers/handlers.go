@@ -40,7 +40,7 @@ func (h *Handler) WSHandler(c *gin.Context) {
 		return
 	}
 	h.Hub.Register(conn)
-	
+
 	// Read pump
 	go func() {
 		defer func() {
@@ -105,7 +105,7 @@ func (h *Handler) UserDashboard(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/")
 		return
 	}
-	
+
 	member, err := h.Repo.GetByPhoneNumber(phone.(string))
 	if err != nil || member == nil {
 		c.Redirect(http.StatusFound, "/")
@@ -173,7 +173,7 @@ func (h *Handler) AdminDashboard(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"Members": members,
-		"IsOpen": h.Hub.IsOpen(),
+		"IsOpen":  h.Hub.IsOpen(),
 	})
 }
 
